@@ -12,7 +12,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8083" // Default port
+		port = "8083" // Default port for quiz service
 	}
 
 	log.Printf("Quiz service running on port %s", port)
