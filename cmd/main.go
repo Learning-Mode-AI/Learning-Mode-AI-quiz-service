@@ -5,21 +5,26 @@ import (
 	"net/http"
 	"os"
 
-	"Learning-Mode-AI-quiz-service/pkg/router" 
-	"Learning-Mode-AI-quiz-service/pkg/services" 
+	"Learning-Mode-AI-quiz-service/pkg/config" // Import the config package
+	"Learning-Mode-AI-quiz-service/pkg/router"
+	"Learning-Mode-AI-quiz-service/pkg/services"
 )
 
 func main() {
-	// Load environment variables (if any)
+	// Load configuration
+	config.InitConfig()
+
+	// Set up port
 	port := os.Getenv("QUIZ_SERVICE_PORT")
 	if port == "" {
 		port = "8084" // Default port if not set
 	}
 
-	// Initialize the router from router.go
-	r := router.NewRouter()
+	// Initialize Redis using the RedisHost from config
+	services.InitRedis(config.RedisHost, "", 0)
 
-	services.InitRedis("localhost:6379", "", 0) 
+	// Initialize the router
+	r := router.NewRouter()
 
 	// Start the HTTP server
 	log.Printf("Quiz Service is running on port %s...", port)

@@ -7,6 +7,8 @@ import (
     "net/http"   
 	"log"
     "io"
+
+    "Learning-Mode-AI-quiz-service/pkg/config"
 )
 
 
@@ -46,7 +48,8 @@ func FetchQuizFromAI(videoID string) (*AIResponse, error) {
     log.Printf("Payload sent to AI Service: %+v", payload)
 
     jsonData, _ := json.Marshal(payload)
-    resp, err := http.Post("http://localhost:8082/ai/generate-quiz", "application/json", bytes.NewBuffer(jsonData))
+    url := fmt.Sprintf("%s/ai/generate-quiz", config.AIHost)
+    resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
     if err != nil {
         return nil, fmt.Errorf("failed to call AI service: %w", err)
     }

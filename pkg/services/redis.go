@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+    "Learning-Mode-AI-quiz-service/pkg/config"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -16,7 +17,7 @@ var rdb *redis.Client
 
 func InitRedis(redisHost string, redisPassword string, redisDB int) {
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", // Replace with Redis server address
+		Addr:     config.RedisHost, // Replace with Redis server address
 		Password: "",               // If no password set
 		DB:       0,                // Use default DB
 	})
