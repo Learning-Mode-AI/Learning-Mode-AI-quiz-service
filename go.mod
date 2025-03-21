@@ -10,4 +10,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/gorilla/handlers v1.5.2 // indirect
+	github.com/sirupsen/logrus v1.9.0  // Adding Logrus package
+
 )
