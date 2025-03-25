@@ -1,13 +1,10 @@
 package handlers
 
 import (
-	"Learning-Mode-AI-quiz-service/pkg/services"
 	"encoding/json"
-	"log"
 	"net/http"
-	"time"
-
-	"github.com/sirupsen/logrus"
+	"log"
+	"Learning-Mode-AI-quiz-service/pkg/services"
 )
 
 type GenerateQuizRequest struct {
@@ -20,88 +17,46 @@ type GenerateQuizResponse struct {
 }
 
 // GenerateQuiz handles the /quiz/generate-quiz POST requests.
-func GenerateQuizHandler(w http.ResponseWriter, r *http.Request) {
-	startTime := time.Now()
-	logger := logrus.WithFields(logrus.Fields{
-		"handler": "GenerateQuizHandler",
-		"service": "quiz_service",
-		"method": r.Method,
-		"path": r.URL.Path,
-	})
-
-	logger.Info("🎯 Received quiz generation request")
-
-	// Only allow POST method
-	if r.Method != http.MethodPost {
-		logger.WithFields(logrus.Fields{
-			"received_method": r.Method,
-			"expected_method": http.MethodPost,
-		}).Warn("⚠️ Invalid HTTP method")
-		
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func GenerateQuiz(w http.ResponseWriter, r *http.Request) {
+	var req GenerateQuizRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		log.Println("Error decoding request:", err)
 		return
 	}
 
-	// Parse request body
-	var request struct {
-		VideoID string `json:"video_id"`
-	}
+	// Check if the quiz exists in Redis
+	quiz, err := services.GetQuizFromRedis(req.VideoID)
+if err != nil {
+    http.Error(w, "Failed to fetch quiz from Redis", http.StatusInternalServerError)
+    log.Println("Error fetching quiz from Redis:", err)
+    return
+}
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"duration_ms": time.Since(startTime).Milliseconds(),
-		}).Error("❌ Failed to decode request body")
-		
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+// If quiz exists in Redis
+if quiz != nil {
+    log.Printf("Quiz retrieved from Redis for VideoID: %s", req.VideoID)
+    sendQuizResponse(w, req.VideoID, quiz.Questions)
+    return
+}
 
-	// Validate video ID
-	if request.VideoID == "" {
-		logger.WithFields(logrus.Fields{
-			"duration_ms": time.Since(startTime).Milliseconds(),
-		}).Warn("⚠️ Missing video_id in request")
-		
-		http.Error(w, "video_id is required", http.StatusBadRequest)
-		return
-	}
+// If quiz does not exist in Redis, fetch from AI service
+quiz, err = services.FetchQuizFromAI(req.VideoID)
+if err != nil {
+    http.Error(w, "Failed to generate quiz", http.StatusInternalServerError)
+    log.Println("Error fetching quiz from AI service:", err)
+    return
+}
 
-	logger.WithFields(logrus.Fields{
-		"video_id": request.VideoID,
-	}).Info("🎬 Processing video for quiz generation")
+// Store the fetched quiz in Redis
+if err := services.StoreQuizInRedis(req.VideoID, quiz); err != nil {
+    log.Println("Error storing quiz in Redis:", err)
+    // Continue responding even if Redis storage fails
+}
 
-	// Call service to generate quiz
-	quiz, err := services.FetchQuizFromAI(request.VideoID)
-	if err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"video_id": request.VideoID,
-			"duration_ms": time.Since(startTime).Milliseconds(),
-		}).Error("❌ Failed to generate quiz")
-		
-		http.Error(w, "Failed to generate quiz", http.StatusInternalServerError)
-		return
-	}
 
-	// Prepare response
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(quiz); err != nil {
-		logger.WithFields(logrus.Fields{
-			"error": err.Error(),
-			"video_id": request.VideoID,
-			"duration_ms": time.Since(startTime).Milliseconds(),
-		}).Error("❌ Failed to encode response")
-		
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
-
-	logger.WithFields(logrus.Fields{
-		"video_id": request.VideoID,
-		"question_count": len(quiz.Questions),
-		"duration_ms": time.Since(startTime).Milliseconds(),
-	}).Info("✅ Successfully generated and returned quiz")
+	// Respond with the fetched quiz
+	sendQuizResponse(w, req.VideoID, quiz.Questions)
 }
 
 func sendQuizResponse(w http.ResponseWriter, quizID string, questions []services.Question) {
