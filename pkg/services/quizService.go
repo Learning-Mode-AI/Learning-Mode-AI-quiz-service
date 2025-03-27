@@ -1,14 +1,15 @@
 package services
 
 import (
-    "bytes"      
-    "encoding/json" 
-    "fmt"       
-    "net/http"   
-    "io"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 
-    "github.com/sirupsen/logrus"
-    "Learning-Mode-AI-quiz-service/pkg/config"
+	"Learning-Mode-AI-quiz-service/pkg/config"
+
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -48,16 +49,18 @@ type RawAIResponse struct {
 }
 
 
-func FetchQuizFromAI(videoID string) (*AIResponse, error) {
+func FetchQuizFromAI(videoID string, userID string) (*AIResponse, error) {
     // Create quiz ID from video ID for now
     quizID := fmt.Sprintf("quiz_%s", videoID)
     
     payload := map[string]string{
         "video_id": videoID,
+        "user_id": userID,
     }
 
     logrus.WithFields(logrus.Fields{
         "quiz_id": quizID,
+        "user_id": userID,
         "payload": payload,
     }).Info("📤 Sending request to AI Service")
 
