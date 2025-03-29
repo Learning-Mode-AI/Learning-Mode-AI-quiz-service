@@ -31,7 +31,7 @@ func StoreQuizInRedis(videoID string, quiz *AIResponse) error {
         return fmt.Errorf("failed to marshal quiz data: %w", err)
     }
 
-    err = rdb.Set(ctx, key, data, 24*time.Hour).Err() // Store with a 24-hour TTL
+    err = rdb.Set(ctx, key, data, 168*time.Hour).Err() // Store with a 1-week TTL
     if err != nil {
         return fmt.Errorf("failed to store quiz in Redis: %w", err)
     }
