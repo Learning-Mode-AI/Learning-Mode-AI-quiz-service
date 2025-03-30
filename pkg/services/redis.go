@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -16,11 +17,23 @@ var ctx = context.Background()
 var rdb *redis.Client
 
 func InitRedis(redisHost string, redisPassword string, redisDB int) {
+	var tlsConfig *tls.Config
+	if config.TLSEnabled {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	} else {
+		tlsConfig = nil
+	}
+
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     config.RedisHost, // Replace with Redis server address
-		Password: "",               // If no password set
-		DB:       0,                // Use default DB
+		Addr:      config.RedisHost, // Replace with Redis server address
+		TLSConfig: tlsConfig,
 	})
+	err := rdb.Ping(ctx).Err()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // StoreQuizInRedis stores a quiz in Redis with a specified TTL
