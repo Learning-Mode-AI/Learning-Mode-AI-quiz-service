@@ -38,11 +38,19 @@ func InitRedis(redisHost string, redisPassword string, redisDB int) {
 
 // StoreQuizInRedis stores a quiz in Redis with a specified TTL
 func StoreQuizInRedis(videoID string, quiz *AIResponse) error {
-	key := fmt.Sprintf("quiz:%s", videoID) // Use "quiz:<video_id>" as the key
-	data, err := json.Marshal(quiz)
-	if err != nil {
-		return fmt.Errorf("failed to marshal quiz data: %w", err)
-	}
+    key := fmt.Sprintf("quiz:%s", videoID) // Use "quiz:<video_id>" as the key
+    data, err := json.Marshal(quiz)
+    if err != nil {
+        return fmt.Errorf("failed to marshal quiz data: %w", err)
+    }
+
+    err = rdb.Set(ctx, key, data, 168*time.Hour).Err() // Store with a 1-week TTL
+    if err != nil {
+        return fmt.Errorf("failed to store quiz in Redis: %w", err)
+    }
+
+    return nil
+}
 
 	err = rdb.Set(ctx, key, data, 24*time.Hour).Err() // Store with a 24-hour TTL
 	if err != nil {
