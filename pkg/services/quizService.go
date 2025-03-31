@@ -1,4 +1,5 @@
 package services
+import "strings"
 
 import (
     "bytes"      
@@ -38,6 +39,7 @@ type Question struct {
 type RawAIResponse struct {
     Summary string `json:"summary"`
 }
+
 
 
 func FetchQuizFromAI(videoID string) (*AIResponse, error) {
@@ -97,7 +99,60 @@ func FetchQuizFromAI(videoID string) (*AIResponse, error) {
         Questions: embeddedData.Questions,
     }
 
-    log.Printf("Parsed AI Response: %+v", aiResponse)
+    // Add this cleanup function
+    aiResponse.Questions = CleanValidQuestions(aiResponse.Questions)
+
 
     return aiResponse, nil
+}
+
+
+
+// CleanValidQuestions keeps questions with unique options, one correct answer, and no overlap with the question text.
+func CleanValidQuestions(questions []Question) []Question {
+    var validQuestions []Question
+
+    for _, q := range questions {
+        matchCount := 0
+        seenOptions := map[string]bool{}
+        uniqueOptions := []Option{}
+        skipQuestion := false
+
+        lowerQuestion := strings.ToLower(strings.TrimSpace(q.Text)) //to compare with options
+
+        for _, opt := range q.Options {
+            cleanOpt := strings.ToLower(strings.TrimSpace(opt.Option))
+
+            // Skip if option are the same as the question
+            if cleanOpt == lowerQuestion || strings.Contains(cleanOpt, lowerQuestion) || strings.Contains(lowerQuestion, cleanOpt) {
+                log.Printf("Skipping question: %s", q.Text)
+                skipQuestion = true
+                break
+            }
+
+            // For deduplicate options
+            if !seenOptions[opt.Option] {
+                seenOptions[opt.Option] = true
+                uniqueOptions = append(uniqueOptions, opt)
+            }
+
+            if opt.Option == q.Answer {
+                matchCount++
+            }
+        }
+
+        if skipQuestion {
+            continue
+        }
+
+        // Keep only if the answer matches exactly one option
+        if matchCount == 1 {
+            q.Options = uniqueOptions
+            validQuestions = append(validQuestions, q)
+        } else {
+            log.Printf("Not a valid question: %d — Q='%s'", matchCount, q.Text)
+        }
+    }
+
+    return validQuestions
 }
