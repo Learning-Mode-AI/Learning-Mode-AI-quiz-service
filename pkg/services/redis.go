@@ -30,6 +30,11 @@ func InitRedis(redisHost string, redisPassword string, redisDB int) {
 	logger.WithFields(logrus.Fields{
 		"redis_host": config.RedisHost,
 	}).Info("Initialized Redis client successfully")
+
+    err := rdb.Ping(ctx).Err()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // StoreQuizInRedis stores a quiz in Redis with a specified TTL
