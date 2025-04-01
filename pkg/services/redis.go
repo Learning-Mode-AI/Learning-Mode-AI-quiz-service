@@ -3,6 +3,7 @@ package services
 import (
 	"Learning-Mode-AI-quiz-service/pkg/config"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -20,11 +21,20 @@ var rdb *redis.Client
 var logger = logrus.New()
 
 func InitRedis(redisHost string, redisPassword string, redisDB int) {
+	var tlsConfig *tls.Config
+	if config.TLSEnabled {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	} else {
+		tlsConfig = nil
+	}
+
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     config.RedisHost, // Replace with Redis server address
-		Password: "",               // If no password set
-		DB:       0,                // Use default DB
+		Addr:      config.RedisHost, // Replace with Redis server address
+		TLSConfig: tlsConfig,
 	})
+
 
 	// Log Redis initialization
 	logger.WithFields(logrus.Fields{
@@ -32,6 +42,7 @@ func InitRedis(redisHost string, redisPassword string, redisDB int) {
 	}).Info("Initialized Redis client successfully")
 
   err := rdb.Ping(ctx).Err()
+
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +61,7 @@ func StoreQuizInRedis(userID, videoID string, quiz *AIResponse) error {
         return fmt.Errorf("failed to marshal quiz data: %w", err)
     }
 
-    err = rdb.Set(ctx, key, data, 24*time.Hour).Err() // Store with a 24-hour TTL
+    err = rdb.Set(ctx, key, data, 168*time.Hour).Err() // Store with a 1-week TTL
     if err != nil {
         logger.WithFields(logrus.Fields{
             "error": err.Error(),
