@@ -31,7 +31,7 @@ func InitRedis(redisHost string, redisPassword string, redisDB int) {
 		"redis_host": config.RedisHost,
 	}).Info("Initialized Redis client successfully")
 
-    err := rdb.Ping(ctx).Err()
+  err := rdb.Ping(ctx).Err()
 	if err != nil {
 		panic(err)
 	}
