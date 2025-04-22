@@ -1,4 +1,5 @@
 package services
+import "strings"
 
 import (
     "bytes"      
@@ -38,6 +39,7 @@ type Question struct {
 type RawAIResponse struct {
     Summary string `json:"summary"`
 }
+
 
 
 func FetchQuizFromAI(videoID string) (*AIResponse, error) {
@@ -97,7 +99,51 @@ func FetchQuizFromAI(videoID string) (*AIResponse, error) {
         Questions: embeddedData.Questions,
     }
 
-    log.Printf("Parsed AI Response: %+v", aiResponse)
+    // Add this cleanup function
+    aiResponse.Questions = CleanValidQuestions(aiResponse.Questions)
+
 
     return aiResponse, nil
+}
+
+
+
+// CleanValidQuestions keeps questions with unique options, one correct answer, and no overlap with the question text.
+func CleanValidQuestions(questions []Question) []Question {
+    validQuestions := make([]Question, 0, len(questions))
+
+    for _, q := range questions {
+        lowerQuestion := strings.ToLower(strings.TrimSpace(q.Text))
+        seen := make(map[string]bool)
+        uniqueOpts := make([]Option, 0, len(q.Options))
+        matchCount := 0
+        skip := false
+
+        for _, opt := range q.Options {
+            cleanOpt := strings.ToLower(strings.TrimSpace(opt.Option))
+
+            if cleanOpt == lowerQuestion || strings.Contains(cleanOpt, lowerQuestion) || strings.Contains(lowerQuestion, cleanOpt) {
+                skip = true
+                break
+            }
+
+            if !seen[cleanOpt] {
+                seen[cleanOpt] = true
+                uniqueOpts = append(uniqueOpts, opt)
+            }
+
+            if opt.Option == q.Answer {
+                matchCount++
+            }
+        }
+
+        if skip || matchCount != 1 {
+            continue
+        }
+
+        q.Options = uniqueOpts
+        validQuestions = append(validQuestions, q)
+    }
+
+    return validQuestions
 }
