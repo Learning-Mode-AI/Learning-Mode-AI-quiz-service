@@ -1,14 +1,17 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 
 	"Learning-Mode-AI-quiz-service/pkg/config" // Import the config package
 	"Learning-Mode-AI-quiz-service/pkg/router"
 	"Learning-Mode-AI-quiz-service/pkg/services"
+	logrus "github.com/sirupsen/logrus"
 )
+
+// Initialize the logger
+var logger = logrus.New()
 
 func main() {
 	// Load configuration
@@ -26,9 +29,15 @@ func main() {
 	// Initialize the router
 	r := router.NewRouter()
 
+	// Log service start message
+	logger.WithFields(logrus.Fields{
+		"port": port,
+	}).Info("Quiz Service is running on port...")
+
 	// Start the HTTP server
-	log.Printf("Quiz Service is running on port %s...", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatal("Failed to start server")
 	}
 }
