@@ -20,7 +20,8 @@ func main() {
 	// Set up port
 	port := os.Getenv("QUIZ_SERVICE_PORT")
 	if port == "" {
-		port = "8084"  // Default port if not set
+		port = "8084"  // 
+		// Default port if not set
 
 
 	}
